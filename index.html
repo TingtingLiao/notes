@@ -3,7 +3,7 @@
 <head>
   <link href="data:image/x-icon;base64,iVBORw0KGgoAAAANSUhEUgAAACsAAAAsCAAAAADZMx6kAAAABGdBTUEAALGPC/xhBQAAAAFzUkdCAK7OHOkAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAEjSURBVDjL3ZVBbcQwEEUXyEcwCIwgCDYIjCAIzKAIQiAMjCAmkDAIAV/2tNLrIc22u8kmXqmV2s7BGtlPlu3/Z3xSeZz+Kgvr7DlrL7D1nPgStp+TVMISz1IdKWEvAHAt2vcWv4HtO1fMAu2BFj1ciY2pbuHtwA8RRlvEq/ZZG6fFFC2D7fvM+dvCuD7y2pMw9F6qwBewQG8KZDv0ulwz0Ulpcd6KHRf/SpLLeFmm22YDOXxON2RTlYnnzdpsIbc3bSO95O8N8qWO/QjkMF/IMkFyXdpmpaoDLl01K5fdfn+weAWGYB+n2O8lnilDbmTTo39WrCPLJ/CqYGjOTlL9rEeBpMAgNdPTd7gTcB59TCOQStijPvkT7EOBpu9i/+k/VBDvUOLeyIV7YagAAAAASUVORK5CYII=" rel="icon" type="image/x-icon" />
   
-    <meta name="owl-fts-index" content="b3dsAAEAAAByH4sIAAAAAAAC/zzLzQ7CMAwDYLvl72U4wBuNYU07rJOScODtUYq6QxR/UVxcc6x7e9wX7ZvCvjguIY+h51/1VHNXAARRUMA2bSKA8nFZBp750tqWnq+cTVPo3XVj1nM6L/Sw8fkLAAD//3Dunb2LAAAA" />
+    <meta name="owl-fts-index" content="b3dsAAEAAAByH4sIAAAAAAAC/zyMSwrCQBBEqzpR8TAu9Ebj2EgWjtAfzy9pTXbvFY8S1x7Le1wvPe3TIk2xT6Eem91+Np25hwTAeU7XR+EaTCuAEAg42qsiSVer5EgPW8az5MC7bnxiN23xf/oGAAD//1OTBgaWAAAA" />
     <script type="module">
       import init,{setup,search}from"./owl_wasm.js";const debounce=(n,t,u)=>{var e;return function(){var i=this,o=arguments,a=u&&!e;clearTimeout(e),e=setTimeout(function(){e=null,u||n.apply(i,o)},t),a&&n.apply(i,o)}};(()=>{async function run(){await init();const ftsData=document.querySelector('meta[name="owl-fts-index"]').getAttribute("content"),instance=setup(ftsData);console.log("Initialisation done");const searchButton=document.querySelector("div.search"),body=document.querySelector("body"),searchInput=document.querySelector("#search-input"),searchResultList=document.querySelector("#result-list"),searchContainer=document.querySelector("#search-container");let searchResults=[],searchActive=!1,activeIndex=-1;const showSearch=()=>{body.classList.add("showing-search"),searchInput.focus(),searchActive=!0},hideSearch=()=>{body.classList.remove("showing-search"),searchActive=!1,activeIndex=-1,searchResults=[],searchResultList.innerHTML="",searchInput.value="",searchInput.blur()},changeActiveIndex=newIndex=>{activeIndex=newIndex;let idx=0;for(let el of searchResultList.children)idx===activeIndex?el.classList.add("active"):el.classList.remove("active"),idx++},findCorrelations=(terms,result)=>{const containerText=document.querySelector(`#content-${result.anchor} .content`).textContent.toLowerCase().replace(/\n/g," ").replace(/\s+/g," ").trim(),allIndexes=terms.map(t=>{const idx=containerText.indexOf(t);return idx===-1?!1:{start:Math.max(0,idx-100),end:idx+100}}).filter(Boolean);if(allIndexes.length===0)return null;const filteredIndexes=[];for(let idx of allIndexes){if(filteredIndexes.length>=2)break;if(filteredIndexes.length===0){filteredIndexes.push(idx);continue}filteredIndexes.some(i=>i.start<=idx.start&&i.end>=idx.end)||filteredIndexes.push(idx)}let resultingText=filteredIndexes.map(i=>{let txt=containerText.substring(i.start,i.end);return i.start!==0&&(txt="&hellip;"+txt.substring(txt.indexOf(" "))),txt+"&hellip;"}).join(" ");return terms.forEach(t=>{resultingText=resultingText.replace(t,x=>`<span class="search-result-match">${x}</span>`)}),resultingText},doSearch=debounce(terms=>{if(terms=terms.trim().toLowerCase(),terms.length===0)return;const then=Date.now();searchResults=search(instance,terms);const now=Date.now();if(console.log(`[owl-fts] Search took ${now-then}ms`),searchResultList.innerHTML="",activeIndex=-1,searchResults.length==0){searchResultList.innerHTML=`<li class="empty">No results for ${terms}</li>`;return}let idx=0;const allTerms=terms.split(" ").map(i=>i.trim()).filter(Boolean),html=searchResults.map(r=>{const correlations=findCorrelations(allTerms,r);if(correlations===null)return null;const anchor=document.querySelector(`#anchor-${r.anchor}`);return`<li class="result" data-to="content-${r.anchor}" data-idx="${idx++}"><div class="search-title">${anchor.textContent}</div><div class="text-matches">${correlations}</div></li>`}).filter(Boolean).join("");searchResultList.innerHTML=html;for(let el of searchResultList.querySelectorAll(".result"))el.addEventListener("mouseenter",e=>{changeActiveIndex(parseInt(e.target.getAttribute("data-idx"),10))}),el.addEventListener("click",e=>{let obj=e.target;for(;obj&&!obj.classList.contains("result");)obj=obj.parentNode;document.querySelector(`#${obj.getAttribute("data-to")}`).scrollIntoView({behavior:"smooth",block:"start"}),document.location.hash=obj.getAttribute("data-to"),hideSearch()})},300);searchContainer.addEventListener("click",e=>{e.target===searchContainer&&hideSearch()}),window.addEventListener("keydown",e=>{if((e.ctrlKey||e.metaKey)&&e.key=="f"||e.key=="/"&&!searchActive){e.preventDefault(),showSearch();return}if(e.key=="Escape"&&searchActive){e.preventDefault(),hideSearch();return}e.key=="ArrowUp"&&searchActive&&(e.preventDefault(),e.stopPropagation(),activeIndex>0&&changeActiveIndex(activeIndex-1)),e.key=="ArrowDown"&&searchActive&&(e.preventDefault(),e.stopPropagation(),activeIndex+1<searchResults.length&&changeActiveIndex(activeIndex+1))}),searchInput.addEventListener("keyup",e=>{if((e.key=="ArrowDown"||e.key=="ArrowUp")&&searchResults.length!=0){e.preventDefault(),e.stopPropagation();return}if(e.key=="Enter"){e.preventDefault(),e.stopPropagation(),activeIndex!=-1&&searchResultList.querySelector(".active").click();return}doSearch(searchInput.value)}),searchButton.onclick=e=>{e.preventDefault(),e.stopPropagation(),showSearch()}}document.addEventListener("DOMContentLoaded",()=>{run()})})();
 
@@ -68,13 +68,13 @@
   </div>
   <!-- Desktop menu -->
   <div class="desktop-menu-content toc">
-    <details id="anchor-section1"><summary>Section1</summary><div class="sidebar-group-wrapper"><a href="#section1-geometry" id="anchor-section1-geometry">Geometry</a><a href="#section1-test" id="anchor-section1-test">test</a></div></details><details id="anchor-section2"><summary>Section2</summary><div class="sidebar-group-wrapper"><a href="#section2-test" id="anchor-section2-test">TEST</a></div></details>
+    <details id="anchor-section1"><summary>Section1</summary><div class="sidebar-group-wrapper"><a href="#section1-curvature" id="anchor-section1-curvature">Curvature</a><a href="#section1-test" id="anchor-section1-test">test</a></div></details><details id="anchor-section2"><summary>Section2</summary><div class="sidebar-group-wrapper"><a href="#section2-test" id="anchor-section2-test">TEST</a></div></details>
   </div>
   <!-- Mobile menu -->
   <div class="mobile-menu-content">
     <div class="content">
       <div class="toc">
-        <details id="anchor-section1"><summary>Section1</summary><div class="sidebar-group-wrapper"><a href="#section1-geometry" id="anchor-section1-geometry">Geometry</a><a href="#section1-test" id="anchor-section1-test">test</a></div></details><details id="anchor-section2"><summary>Section2</summary><div class="sidebar-group-wrapper"><a href="#section2-test" id="anchor-section2-test">TEST</a></div></details>
+        <details id="anchor-section1"><summary>Section1</summary><div class="sidebar-group-wrapper"><a href="#section1-curvature" id="anchor-section1-curvature">Curvature</a><a href="#section1-test" id="anchor-section1-test">test</a></div></details><details id="anchor-section2"><summary>Section2</summary><div class="sidebar-group-wrapper"><a href="#section2-test" id="anchor-section2-test">TEST</a></div></details>
       </div>
     </div>
   </div>
@@ -104,20 +104,20 @@
     </div>
   
   
-<section class="section" id="content-section1-geometry">
+<section class="section" id="content-section1-curvature">
 
   <div class="section-wrapper">
     <div class="content">
       
-        <h1><span class="anchor-ref" id="section1-geometry">
+        <h1><span class="anchor-ref" id="section1-curvature">
           
-            <a href="#content-section1-geometry" class="anchor-link">
+            <a href="#content-section1-curvature" class="anchor-link">
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-link"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
             </a>
           
-        </span>Geometry</h1>
+        </span>Curvature</h1>
       
-      <p>testtest</p>
+      <p>Curvature is used to</p>
 
 <h5>Test</h5><ul class="owl-list">
 <li class="title"><p>name <code>string</code></p></li><li class="content"><p>Name of the user being created</p>
